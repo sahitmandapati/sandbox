@@ -1,106 +1,61 @@
-import React, { useState, useEffect } from "react";
-import "./styles.css";
+import React, { useState, useEffect } from 'react';
+import { Modal, Button } from '@material-ui/core';
+import './App.css'; // Ensure you have a CSS file for styling if needed
 
-export default function App() {
-  const [showModal, setShowModal] = useState(false);
-  
-  // Get initial stepIndex from URL params
-  const getInitialStep = () => {
-    const params = new URLSearchParams(window.location.search);
-    return parseInt(params.get('stepIndex')) || 0;
-  };
-  
-  const [stepIndex, setStepIndex] = useState(getInitialStep);
-
-  const updateURL = (newStep) => {
-    const params = new URLSearchParams(window.location.search);
-    params.set('stepIndex', newStep);
-    const newURL = `${window.location.pathname}?${params.toString()}`;
-    window.history.pushState({ stepIndex: newStep }, '', newURL);
-  };
-
-  const handleNavigation = (direction) => {
-    const newStep = stepIndex + direction;
-    
-    // Show confirmation when going back from step 5 to 4
-    if (stepIndex === 5 && direction === -1) {
-      setShowModal(true);
-      return;
-    }
-    
-    setStepIndex(newStep);
-    updateURL(newStep);
-  };
-
-  // const handleBackButton = (e) => {
-  //   e.preventDefault();
-  //   const previousStep = e.state?.stepIndex ?? stepIndex;
-    
-  //   if (stepIndex === 5 && previousStep === 4) {
-  //     setShowModal(true);
-  //     return;
-  //   }
-    
-  //   setStepIndex(previousStep);
-  // };
+function App() {
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    // window.history.pushState({ stepIndex }, '', window.location.search);
-    // window.addEventListener("onbeforeunload", handleBackButton);
-    window.onbeforeunload = function() {
-      alert('Are you sure you want to leave?');
+    const handlePopState = () => {
+      // Prevent the default back action
+      window.history.pushState(null, null, window.location.href);
+      setOpen(true);
     };
-    return () => window.onbeforeunload = null;
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
-  useEffect(() => {
-
-    // Push another state to enable back navigation
-    window.history.pushState({ stepIndex }, '', window.location.search);
-  
-    // Use onpopstate with setTimeout
-    window.onpopstate = (e) => {
-      setTimeout(() => {
-        console.log('PopState Event:', e.state);
-        const previousStep = e.state?.stepIndex ?? stepIndex;
-        
-        if (stepIndex === 5 && previousStep === 4) {
-          setShowModal(true);
-          return;
-        }
-        
-        setStepIndex(previousStep);
-      }, 0);
-    };
-  
-    return () => {
-      window.onpopstate = null;
-    };
-  }, [stepIndex]);
-
-  const handleConfirm = () => {
-    setShowModal(false);
-    setStepIndex(4);
-    updateURL(4);
+  const handleYes = () => {
+    // Allow the back action
+    window.history.go(-1);
   };
 
-  const handleCancel = () => {
-    setShowModal(false);
-    updateURL(5); // Stay on step 5
+  const handleNo = () => {
+    // Prevent going back and close the modal
+    window.history.pushState(null, null, window.location.href);
+    setOpen(false);
   };
 
   return (
     <div>
-      <button onClick={() => handleNavigation(-1)}>Back</button>
-      <button onClick={() => handleNavigation(1)}>Next</button>
-      {showModal && (
-        <div className="modal">
+      {/* Your main content goes here */}
+
+      <Modal open={open} onClose={handleNo}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '5px',
+          }}
+        >
           <p>Are you sure you want to go back?</p>
-          <button onClick={handleConfirm}>Yes</button>
-          <button onClick={handleCancel}>No</button>
+          <Button variant="contained" color="primary" onClick={handleYes}>
+            Yes
+          </Button>
+          <Button variant="contained" onClick={handleNo}>No</Button>
         </div>
-      )}
-      <p>Current Step: {stepIndex}</p>
+      </Modal>
     </div>
   );
 }
+
+export default App;
